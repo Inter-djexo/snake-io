@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Slither Clone</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <h1>Slither Clone</h1>
+
+    <div id="auth">
+        <p id="user-status">Signing in...</p>
+        <button id="google-sign-in">Sign In with Google</button>
+        <button id="sign-out" style="display: none;">Sign Out</button>
+    </div>
+
+    <!-- Game container (will add content here later) -->
+    <div id="game-area">
+        <canvas id="game-canvas"></canvas>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="script.js"></script>
+</body>
+</html>
