@@ -1,18 +1,25 @@
 body {
-    font-family: sans-serif;
+    font-family: 'Arial', sans-serif;
     margin: 0;
     padding: 10px;
     text-align: center;
-    background-color: #f0f0f0;
+    background-color: #e6e6e6;
+    background: linear-gradient(to bottom, #e6e6e6, #f0f0f0);
 }
 
 #auth {
     margin-bottom: 20px;
+    padding: 10px;
+    background-color: #fff;
+    border-radius: 5px;
 }
 
 #game-area {
-    border: 1px solid #ccc;
+    border: 1px solid #bbb;
     background-color: white;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    padding: 10px;
+    border-radius: 5px;
 }
 
 canvas {

@@ -31,31 +31,128 @@ async function signOut() {
 }
 
 // Listen for auth state changes (like sign-in, sign-out, token refresh)
-supabase.auth.onAuthStateChange((event, session) => {
+supabase.auth.onAuthStateChange(async (event, session) => {
     console.log('Auth state changed:', event, session);
     if (session) {
         // User is signed in
-        userStatusElement.textContent = `Signed in as: ${session.user.email}`; // Or display username/ID
+        userStatusElement.textContent = `Signed in as: ${session.user.email}`;
         googleSignInBtn.style.display = 'none';
         signOutBtn.style.display = 'block';
-        // TODO: Initialize/show game when user is signed in
-        console.log('User is signed in. Session:', session);
+
+        // Check if profile exists, create if not
+        const profile = await fetchProfile(session.user.id);
+        if (!profile) {
+            await createProfile(session.user);
+        }
 
         init(); // Initialize game when user signs in
+        fetchLeaderboard(); // Fetch and display leaderboard
 
     } else {
         // User is signed out
         userStatusElement.textContent = 'Please sign in';
         googleSignInBtn.style.display = 'block';
         signOutBtn.style.display = 'none';
-        // TODO: Hide/reset game when user is signed out
         console.log('User is signed out.');
     }
 });
 
+async function fetchProfile(userId) {
+    try {
+        const { data, error } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', userId)
+            .single();
+
+        if (error) {
+            console.error('Error fetching profile:', error.message);
+            return null;
+        }
+
+        return data;
+    } catch (error) {
+        console.error('Error fetching profile:', error.message);
+        return null;
+    }
+}
+
+async function createProfile(user) {
+    const username = prompt('Please enter a username:');
+    if (username) {
+        try {
+            const { data, error } = await supabase
+                .from('profiles')
+                .insert([{ id: user.id, username: username }]);
+
+            if (error) {
+                console.error('Error creating profile:', error.message);
+                alert('Failed to create profile. Please try again.');
+            } else {
+                console.log('Profile created successfully:', data);
+                alert('Profile created successfully!');
+            }
+        } catch (error) {
+            console.error('Error creating profile:', error.message);
+            alert('An unexpected error occurred while creating your profile.');
+        }
+    } else {
+        alert('Username cannot be empty.');
+    }
+}
+
+
 // Add event listeners to buttons
 googleSignInBtn.addEventListener('click', signInWithGoogle);
 signOutBtn.addEventListener('click', signOut);
+
+// --- Leaderboard Logic ---
+
+async function fetchLeaderboard() {
+    try {
+        const { data, error } = await supabase
+            .from('profiles')
+            .select('username, total_score')
+            .order('total_score', { ascending: false })
+            .limit(10);
+
+        if (error) {
+            console.error('Error fetching leaderboard:', error.message);
+            alert('Failed to fetch leaderboard. Please try again.');
+        } else {
+            console.log('Leaderboard fetched successfully:', data);
+            displayLeaderboard(data);
+        }
+    } catch (error) {
+        console.error('Error fetching leaderboard:', error.message);
+        alert('An unexpected error occurred while fetching the leaderboard.');
+    }
+}
+
+function displayLeaderboard(leaderboardData) {
+    const leaderboardContainer = document.getElementById('leaderboard');
+    if (!leaderboardContainer) {
+        console.error('Leaderboard container not found in index.html');
+        return;
+    }
+
+    // Clear any existing leaderboard data
+    leaderboardContainer.innerHTML = '';
+
+    // Create leaderboard header
+    const header = document.createElement('h2');
+    header.textContent = 'Leaderboard';
+    leaderboardContainer.appendChild(header);
+
+    // Create leaderboard list
+    const list = document.createElement('ol');
+    leaderboardData.forEach(player => {
+        const listItem = document.createElement('li');
+        listItem.textContent = `${player.username}: ${player.total_score}`;
+        list.appendChild(listItem);
+    });
+    leaderboardContainer.appendChild(list);
+}
 
 // --- Game Logic ---
 
@@ -160,6 +257,8 @@ function draw() {
 // Main game loop
 function gameLoop() {
     if (checkCollision()) {
+        const gameDuration = 0; // Calculate actual game duration
+        saveScore(score, gameDuration);
         alert('Game Over! Score: ' + score);
         snake = [{ x: 200, y: 200 }];
         score = 0;
@@ -176,4 +275,29 @@ function gameLoop() {
 
 // Initial resize
 resizeCanvas();
+async function saveScore(score, gameDuration) {
+    if (!supabase.auth.currentUser) {
+        console.warn('User not signed in, score not saved.');
+        return;
+    }
+
+    try {
+        const { data, error } = await supabase
+            .from('scores')
+            .insert([
+                { user_id: supabase.auth.currentUser.id, score: score, game_duration_seconds: gameDuration },
+            ]);
+
+        if (error) {
+            console.error('Error saving score:', error.message);
+            alert('Failed to save score. Please try again.');
+        } else {
+            console.log('Score saved successfully:', data);
+        }
+    } catch (error) {
+        console.error('Error saving score:', error.message);
+        alert('An unexpected error occurred while saving your score.');
+    }
+}
+
 window.addEventListener('resize', resizeCanvas);
